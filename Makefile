@@ -6,6 +6,7 @@
 # make cleanobj     # to cleanup object files only
 
 CFLAGS = -Wall -O2 -g
+LDLIBS = -lm
 
 PROGS = imageTool imageTest
 
