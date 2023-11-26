@@ -186,8 +186,8 @@ Image ImageCreate(int width, int height, uint8 maxval) { ///
   img->maxval = maxval;
 
   // Aloca memória para o array de pixeis
-  img->pixeis = (uint8 *)malloc(width * height * sizeof(uint8));
-  if (img->pixeis == NULL) {
+  img->pixel = (uint8 *)malloc(width * height * sizeof(uint8));
+  if (img->pixel == NULL) {
     // Falha na alocação de memória para os pixeis
     free(img);
     return NULL;
@@ -195,7 +195,7 @@ Image ImageCreate(int width, int height, uint8 maxval) { ///
 
   // Inicializa todos os pixeis com 0 (preto)
   for (int i = 0; i < width * height; i++) {
-    img->pixeis[i] = 0;
+    img->pixel[i] = 0;
   }
 
   return img;
@@ -214,7 +214,7 @@ void ImageDestroy(Image* imgp) { ///
   }
 
   // Libera a memória do array de pixeis
-  free((*imgp)->pixeis);
+  free((*imgp)->pixel);
 
 
   // Libera a memória da estrutura da imagem
@@ -508,15 +508,15 @@ void ImageBrighten(Image img, double factor) {
 Image ImageRotate(Image img) { ///
   assert (img != NULL);
   // Cria uma nova imagem com as dimensões invertidas
-  Image rotatedImg = ImageCreate(img->height, img->width);
+  Image rotatedImg = ImageCreate(img->height, img->width, img->maxval);
   assert(rotatedImg != NULL);
 
   // Percorre cada pixel da imagem original
   for (int y = 0; y < img->height; y++) {
     for (int x = 0; x < img->width; x++) {
       // Calcula a nova posição do pixel após a rotação
-      int new_x = y;
-      int new_y = img->width - 1 - x;
+      int new_x = img->height - 1 - y;
+      int new_y = x;
 
       // Copia o pixel da imagem original para a nova posição na imagem rotacionada
       rotatedImg->pixel[new_y * rotatedImg->width + new_x] = img->pixel[y * img->width + x];
@@ -537,7 +537,7 @@ Image ImageMirror(Image img) { ///
   assert (img != NULL);
 
   // Cria uma nova imagem para o resultado espelhado
-  Image mirroredImg = ImageCreate(img->width, img->height);
+  Image mirroredImg = ImageCreate(img->width, img->height, img->maxval);
   assert(mirroredImg != NULL);
 
   // Percorre cada linha da imagem
@@ -571,7 +571,7 @@ Image ImageCrop(Image img, int x, int y, int w, int h) { ///
   assert (ImageValidRect(img, x, y, w, h));
 
   // Cria uma nova imagem para o resultado do corte
-  Image croppedImg = ImageCreate(w, h);
+  Image croppedImg = ImageCreate(w, h, img->maxval );
   assert(croppedImg != NULL);
 
   // Copia os pixeis relevantes
@@ -606,7 +606,7 @@ void ImagePaste(Image img1, int x, int y, Image img2) { ///
       int posY = y + j;
 
       // Copia o pixel de img2 para img1
-      img1->data[posY * img1->width + posX] = img2->data[j * img2->width + i];
+      img1->pixel[posY * img1->width + posX] = img2->pixel[j * img2->width + i];
     }
   }
 }
@@ -630,8 +630,8 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
       int posY = y + j;
 
       // Realiza a mistura dos pixeis
-      uint8 pixel1 = img1->data[posY * img1->width + posX];
-      uint8 pixel2 = img2->data[j * img2->width + i];
+      uint8 pixel1 = img1->pixel[posY * img1->width + posX];
+      uint8 pixel2 = img2->pixel[j * img2->width + i];
 
       // Calcula o valor do pixel misturado
       uint8 blendedValue = (int)(pixel1 * (1.0 - alpha) + pixel2 * alpha + 0.5); //rounding
@@ -644,7 +644,7 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
       }
 
       // Atualiza o valor do pixel misturado
-      img1->data[posY * img1->width + posX] = (uint8)blendedValue;
+      img1->pixel[posY * img1->width + posX] = (uint8)blendedValue;
     }
   }  
 }
@@ -665,7 +665,7 @@ int ImageMatchSubImage(Image img1, int x, int y, Image img2) { ///
       int posY = y + j;
 
       // Compara o pixel de img2 com o pixel correspondente em img1
-      if (img1->data[posY * img1->width + posX] != img2->data[j * img2->width + i]) {
+      if (img1->pixel[posY * img1->width + posX] != img2->pixel[j * img2->width + i]) {
         return 0; // Os pixeis não correspondem
       }
     }
@@ -691,7 +691,7 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
       int match = 1;
       for (int j = 0; j < img2->height && match; j++) {
         for (int i = 0; i < img2->width && match; i++) {
-          if (img1->data[(y + j) * img1->width + (x + i)] != img2->data[j * img2->width + i]) {
+          if (img1->pixel[(y + j) * img1->width + (x + i)] != img2->pixel[j * img2->width + i]) {
             match = 0; // pixeis não correspondem
           }
         }
@@ -742,7 +742,7 @@ void ImageBlur(Image img, int dx, int dy) { ///
           int next_x = x + j;
           int next_y = y + i;
 
-          if ImageValidPos(img,next_x,next_y){
+          if (ImageValidPos(img,next_x,next_y)){
 
             sum += ImageGetPixel (img, next_x, next_y);
             count++;
@@ -757,7 +757,7 @@ void ImageBlur(Image img, int dx, int dy) { ///
   }
 
   for (int i = 0; i < height * width; i++){
-    img->pixel[i] = blurredImage->data[i];
+    img->pixel[i] = blurredImage->pixel[i];
   }
   
   ImageDestroy(&blurredImage);
