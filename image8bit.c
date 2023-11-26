@@ -515,8 +515,8 @@ Image ImageRotate(Image img) { ///
   for (int y = 0; y < img->height; y++) {
     for (int x = 0; x < img->width; x++) {
       // Calcula a nova posição do pixel após a rotação
-      int new_x = img->height - 1 - y;
-      int new_y = x;
+      int new_x = y;
+      int new_y = img->height - 1 - x;
 
       // Copia o pixel da imagem original para a nova posição na imagem rotacionada
       rotatedImg->pixel[new_y * rotatedImg->width + new_x] = img->pixel[y * img->width + x];
