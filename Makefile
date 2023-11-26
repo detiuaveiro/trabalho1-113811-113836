@@ -6,7 +6,6 @@
 # make cleanobj     # to cleanup object files only
 
 CFLAGS = -Wall -O2 -g
-LDLIBS = -lm
 
 PROGS = imageTool imageTest
 
@@ -15,11 +14,11 @@ TESTS = test1 test2 test3 test4 test5 test6 test7 test8 test9
 # Default rule: make all programs
 all: $(PROGS)
 
-imageTest: imageTest.o image8bit.o instrumentation.o
+imageTest: imageTest.o image8bit.o instrumentation.o error.o
 
 imageTest.o: image8bit.h instrumentation.h
 
-imageTool: imageTool.o image8bit.o instrumentation.o
+imageTool: imageTool.o image8bit.o instrumentation.o error.o
 
 imageTool.o: image8bit.h instrumentation.h
 
@@ -84,4 +83,3 @@ cleanobj:
 
 clean: cleanobj
 	rm -f $(PROGS)
-
