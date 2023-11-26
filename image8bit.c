@@ -716,50 +716,44 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
 /// Each pixel is substituted by the mean of the pixeis in the rectangle
 /// [x-dx, x+dx]x[y-dy, y+dy].
 /// The image is changed in-place.
-void ImageBlur(Image img, int dx, int dy) { ///
+void ImageBlur(Image img, int dx, int dy) {
+    assert(img != NULL);
+    assert(img->width > 0 && img->height > 0);
+    assert(dx >= 0 && dy >= 0);
 
-  assert (img != NULL);
-  assert(img->width >= 0 && img->height >= 0);
+    int width = img->width;
+    int height = img->height;
+    uint8 *blurredPixels = (uint8 *)malloc(width * height * sizeof(uint8));
+    assert(blurredPixels != NULL);
 
-  int width = img->width;
-  int height = img->height;
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            long sum = 0;
+            int count = 0;
+            // Definindo os limites do retângulo de desfoque
+            int startX = (x - dx) > 0 ? (x - dx) : 0;
+            int endX = (x + dx) < width ? (x + dx) : (width - 1);
+            int startY = (y - dy) > 0 ? (y - dy) : 0;
+            int endY = (y + dy) < height ? (y + dy) : (height - 1);
 
-  Image blurredImage = ImageCreate (width,height, ImageMaxval(img));
-
-  if (blurredImage == NULL){
-    return;
-  }
-
-  for (int y = 0; y < img->height; y++){
-    for (int x = 0; x < img->width; x++){
-
-      long sum = 0;
-      int count = 0;
-
-      for (int i = -dy; i <= dy; i++){
-        for (int j = -dx; j <= dx; j++){
-
-          int next_x = x + j;
-          int next_y = y + i;
-
-          if (ImageValidPos(img,next_x,next_y)){
-
-            sum += ImageGetPixel (img, next_x, next_y);
-            count++;
-
-          }
+            for (int i = startY; i <= endY; i++) {
+                for (int j = startX; j <= endX; j++) {
+                    sum += img->pixel[i * width + j];
+                    count++;
+                }
+            }
+            // Calculando o valor médio dos pixels no retângulo de desfoque
+            blurredPixels[y * width + x] = (uint8)(sum / count);
         }
-      }
-
-      uint8 blurredValue = ((uint8)(double)sum/ count + 0.5); //rounding
-      ImageSetPixel(blurredImage,x,y,blurredValue);
     }
-  }
 
-  for (int i = 0; i < height * width; i++){
-    img->pixel[i] = blurredImage->pixel[i];
-  }
-  
-  ImageDestroy(&blurredImage);
+    // Copiando os pixels desfocados de volta para a imagem original
+    for (int i = 0; i < width * height; i++) {
+        img->pixel[i] = blurredPixels[i];
+    }
+
+    // Liberando a memória temporária
+    free(blurredPixels);
 }
+
 
