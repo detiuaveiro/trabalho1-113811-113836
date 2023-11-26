@@ -73,6 +73,27 @@ test9: $(PROGS) setup
 	./imageTool test/original.pgm blur 7,7 save blur.pgm
 	cmp blur.pgm test/blur.pgm
 
+blur1: $(PROGS) setup
+	./imageTool test/paste.pgm blur 4,2 save blur1.pgm
+	cmp blur.pgm test/blur.pgm
+
+blur2: $(PROGS) setup
+	./imageTool test/original.pgm blur 3,3 save blur2.pgm
+	cmp blur.pgm test/blur.pgm
+
+blur3: $(PROGS) setup
+	./imageTool test/chess8.pgm blur 5,5 save blur3.pgm
+	cmp blur.pgm test/blur.pgm
+
+locate1:$(PROGS) setup
+	./imageTool test/small.pgm test/small.pgm locate
+
+locate2:$(PROGS) setup
+	./imageTool test/small.pgm test/blend.pgm locate
+
+locate3:$(PROGS) setup
+	./imageTool test/blend.pgm test/paste.pgm locate
+
 .PHONY: tests
 tests: $(TESTS)
 
