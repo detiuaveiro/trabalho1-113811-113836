@@ -469,7 +469,7 @@ void ImageBrighten(Image img, double factor) {
 
   for (int i = 0; i < img->width * img->height; i++) {
     //Muda o brilho de cada pixel
-    int new_brightness = round(img->pixel[i] * factor);
+    int new_brightness = (img->pixel[i] * factor + 0.5);
         
     // Certifica que o brilho está entre os valores supostos (maxval)
     if (new_brightness > maxval) {
