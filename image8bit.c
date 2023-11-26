@@ -751,7 +751,7 @@ void ImageBlur(Image img, int dx, int dy) { ///
         }
       }
 
-      uint8 blurredValue = ((uint8)(double)sum/ count + 0.5); //rounding
+      uint8 blurredValue = (((uint8)(double)sum/ count) + 0.5); //rounding
       ImageSetPixel(blurredImage,x,y,blurredValue);
     }
   }
