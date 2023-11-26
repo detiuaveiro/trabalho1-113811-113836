@@ -716,50 +716,53 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
 /// Each pixel is substituted by the mean of the pixeis in the rectangle
 /// [x-dx, x+dx]x[y-dy, y+dy].
 /// The image is changed in-place.
-void ImageBlur(Image img, int dx, int dy) { ///
+void ImageBlur(Image img, int dx, int dy) {
+    assert(img != NULL);
+    assert(img->width > 0 && img->height > 0);
+    assert(dx >= 0 && dy >= 0);
 
-  assert (img != NULL);
-  assert(img->width >= 0 && img->height >= 0);
+    int width = img->width;
+    int height = img->height;
+    long** integralImage = CreateIntegralImage(img);
 
-  int width = img->width;
-  int height = img->height;
+    for (int y = 0; y < height; y++) {
+        for (int x = 0; x < width; x++) {
+            // Determinar as coordenadas do retângulo para a média
+            int x1 = (x - dx > 0) ? x - dx : 0;
+            int y1 = (y - dy > 0) ? y - dy : 0;
+            int x2 = (x + dx < width) ? x + dx : width - 1;
+            int y2 = (y + dy < height) ? y + dy : height - 1;
 
-  Image blurredImage = ImageCreate (width,height, ImageMaxval(img));
+            // Calcular a soma e a contagem dos pixels no retângulo usando a imagem integral
+            long sum = integralImage[y2][x2] - integralImage[y1 - 1][x2] - integralImage[y2][x1 - 1] + integralImage[y1 - 1][x1 - 1];
+            int count = (x2 - x1 + 1) * (y2 - y1 + 1);
 
-  if (blurredImage == NULL){
-    return;
-  }
-
-  for (int y = 0; y < img->height; y++){
-    for (int x = 0; x < img->width; x++){
-
-      long sum = 0;
-      int count = 0;
-
-      for (int i = -dy; i <= dy; i++){
-        for (int j = -dx; j <= dx; j++){
-
-          int next_x = x + j;
-          int next_y = y + i;
-
-          if (ImageValidPos(img,next_x,next_y)){
-
-            sum += ImageGetPixel (img, next_x, next_y);
-            count++;
-
-          }
+            // Calcular o valor médio e atualizar o pixel na imagem original
+            uint8 newValue = (uint8)(sum / count);
+            img->pixel[y * width + x] = newValue;
         }
-      }
-
-      uint8 blurredValue = (((uint8)(double)sum/ count) + 0.5); //rounding
-      ImageSetPixel(blurredImage,x,y,blurredValue);
     }
-  }
 
-  for (int i = 0; i < height * width; i++){
-    img->pixel[i] = blurredImage->pixel[i];
-  }
-  
-  ImageDestroy(&blurredImage);
+    // Liberar a imagem integral
+    for (int i = 0; i < height; i++) {
+        free(integralImage[i]);
+    }
+    free(integralImage);
 }
 
+long** CreateIntegralImage(Image img) {
+    int width = img->width;
+    int height = img->height;
+    long** integralImage = (long**)malloc(height * sizeof(long*));
+    for (int i = 0; i < height; i++) {
+        integralImage[i] = (long*)malloc(width * sizeof(long));
+        for (int j = 0; j < width; j++) {
+            long pixelValue = img->pixel[i * width + j];
+            integralImage[i][j] = pixelValue;
+            if (i > 0) integralImage[i][j] += integralImage[i - 1][j];
+            if (j > 0) integralImage[i][j] += integralImage[i][j - 1];
+            if (i > 0 && j > 0) integralImage[i][j] -= integralImage[i - 1][j - 1];
+        }
+    }
+    return integralImage;
+}
