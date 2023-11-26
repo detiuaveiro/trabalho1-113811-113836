@@ -750,7 +750,7 @@ void ImageBlur(Image img, int dx, int dy) {
     free(integralImage);
 }
 
-long** CreateIntegralImage(Image img) {
+static long** CreateIntegralImage(Image img) {
     int width = img->width;
     int height = img->height;
     long** integralImage = (long**)malloc(height * sizeof(long*));
