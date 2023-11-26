@@ -724,24 +724,29 @@ void ImageBlur(Image img, int dx, int dy) { ///
   int width = img->width;
   int height = img->height;
 
+  //Cria uma nova imagem com as dimensões da imagem original
   Image blurredImage = ImageCreate (width,height, ImageMaxval(img));
 
   if (blurredImage == NULL){
     return;
   }
 
+  //percorrer cada pixel da imagem
   for (int y = 0; y < img->height; y++){
     for (int x = 0; x < img->width; x++){
 
+      //Inicializa duas variáveis para calcular a soma dos valores dos pixels dentro do filtro e contar quantos pixels foram somados.
       long sum = 0;
       int count = 0;
 
       for (int i = -dy; i <= dy; i++){
         for (int j = -dx; j <= dx; j++){
 
+          //Calcula as coordenadas next_x e next_y dos pixels vizinhos a serem incluídos no cálculo da média.
           int next_x = x + j;
           int next_y = y + i;
 
+          //Verifica se o pixel vizinho está dentro dos limites da imagem.
           if (ImageValidPos(img,next_x,next_y)){
 
             sum += ImageGetPixel (img, next_x, next_y);
@@ -751,14 +756,17 @@ void ImageBlur(Image img, int dx, int dy) { ///
         }
       }
 
+      //Calcula o valor médio dos pixels no retângulo e aplica arredondamento ao converter para uint8.
       uint8 blurredValue = (uint8)((double)sum / count + 0.5); //rounding
       ImageSetPixel(blurredImage,x,y,blurredValue);
     }
   }
 
+  //Depois que todos os pixels foram processados, este loop copia os pixels da imagem temporária blurredImage de volta para a imagem original
   for (int i = 0; i < height * width; i++){
     img->pixel[i] = blurredImage->pixel[i];
   }
   
+  //Libera a memória alocada pela imagem temporária
   ImageDestroy(&blurredImage);
 }
