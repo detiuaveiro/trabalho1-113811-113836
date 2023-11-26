@@ -337,8 +337,8 @@ void ImageStats(Image img, uint8* min, uint8* max) {
   assert(max != NULL);
 
   // Inicializa min e max com valores extremos
-  *min = 255;
-  *max = 0;
+  *min = 0;
+  *max = 255;
 
   // Percorre cada pixel da imagem
   for (int y = 0; y < img->height; y++) {
@@ -346,14 +346,14 @@ void ImageStats(Image img, uint8* min, uint8* max) {
       // Obtem o valor do pixel atual
       uint8 pixelValue = img->data[y * img->width + x];
 
-      // Atualiza o valor mínimo, se necessário
-      if (pixelValue < *min) { 
-        *min = pixelValue;
+      // Atualiza o valor maximo, se necessário
+      if (pixelValue > *max) { 
+        *max = pixelValue;
       }
 
-      // Atualiza o valor máximo, se necessário
-      if (pixelValue > *max) {
-        *max = pixelValue;
+      // Atualiza o valor minimo, se necessário
+      if (pixelValue < *min) {
+        *min = pixelValue;
       }
     }
   }
@@ -399,7 +399,7 @@ static inline int G(Image img, int x, int y) {
   assert(0 <= y && y < img->height);
 
   // Calcula o índice linear baseado nas coordenadas x, y
-  int index = y * img->width + x;
+  index = y * img->width + x;
 
   assert (0 <= index && index < img->width*img->height);
   return index;
@@ -453,7 +453,7 @@ void ImageThreshold(Image img, uint8 thr) {
   int totalpixeis = img->width * img->height;
 
   for (int i = 0; i < totalpixeis; i++) {
-    img->data[i] = (img->data[i] > thr) ? 255 : 0;
+    img->data[i] = (img->data[i] >= thr) ? 255 : 0;
   };
 }
 
@@ -465,18 +465,20 @@ void ImageBrighten(Image img, double factor) {
   assert (img != NULL);
   assert (factor >= 0.0);
 
+  uint8 maxval = img->maxval;
+
   for (int i = 0; i < img->width * img->height; i++) {
-    // Adjust the brightness of each pixel
+    //Muda o brilho de cada pixel
     int new_brightness = round(img->pixels[i] * factor);
         
-    // Ensure the new brightness is within the 0-255 range
-    if (new_brightness > 255) {
-      new_brightness = 255;
+    // Certifica que o brilho está entre os valores supostos (maxval)
+    if (new_brightness > maxval) {
+      new_brightness = maxval;
     } 
     else if (new_brightness < 0) {
       new_brightness = 0;
     }
-    // Update the pixel value
+    // Aplica as alterações
     img->pixels[i] = (uint8)new_brightness;
   }
 }
@@ -506,18 +508,18 @@ void ImageBrighten(Image img, double factor) {
 Image ImageRotate(Image img) { ///
   assert (img != NULL);
   // Cria uma nova imagem com as dimensões invertidas
-  Image rotatedImg = CreateImage(img->height, img->width);
+  Image rotatedImg = ImageCreate(img->height, img->width);
   assert(rotatedImg != NULL);
 
   // Percorre cada pixel da imagem original
   for (int y = 0; y < img->height; y++) {
     for (int x = 0; x < img->width; x++) {
       // Calcula a nova posição do pixel após a rotação
-      int newX = y;
-      int newY = img->width - 1 - x;
+      int new_x = y;
+      int new_y = img->width - 1 - x;
 
       // Copia o pixel da imagem original para a nova posição na imagem rotacionada
-      rotatedImg->data[newY * rotatedImg->width + newX] = img->data[y * img->width + x];
+      rotatedImg->data[new_y * rotatedImg->width + new_x] = img->data[y * img->width + x];
     }
   }
 
@@ -535,7 +537,7 @@ Image ImageMirror(Image img) { ///
   assert (img != NULL);
 
   // Cria uma nova imagem para o resultado espelhado
-  Image mirroredImg = CreateImage(img->width, img->height);
+  Image mirroredImg = ImageCreate(img->width, img->height);
   assert(mirroredImg != NULL);
 
   // Percorre cada linha da imagem
@@ -565,10 +567,11 @@ Image ImageMirror(Image img) { ///
 /// On failure, returns NULL and errno/errCause are set accordingly.
 Image ImageCrop(Image img, int x, int y, int w, int h) { ///
   assert (img != NULL);
+  //Verificar compatibilidade de dimensões
   assert (ImageValidRect(img, x, y, w, h));
 
   // Cria uma nova imagem para o resultado do corte
-  Image croppedImg = CreateImage(w, h);
+  Image croppedImg = ImageCreate(w, h);
   assert(croppedImg != NULL);
 
   // Copia os pixeis relevantes
@@ -592,6 +595,7 @@ Image ImageCrop(Image img, int x, int y, int w, int h) { ///
 void ImagePaste(Image img1, int x, int y, Image img2) { ///
   assert (img1 != NULL);
   assert (img2 != NULL);
+  //Verificar compatibilidade de dimensões
   assert (ImageValidRect(img1, x, y, img2->width, img2->height));
 
   // Percorre cada pixel de img2
@@ -630,7 +634,17 @@ void ImageBlend(Image img1, int x, int y, Image img2, double alpha) { ///
       uint8 pixel2 = img2->data[j * img2->width + i];
 
       // Calcula o valor do pixel misturado
-      img1->data[posY * img1->width + posX] = (uint8)(pixel1 * (1 - alpha) + pixel2 * alpha);
+      uint8 blendedValue = (int)(pixel1 * (1.0 - alpha) + pixel2 * alpha + 0.5); //rounding
+
+      // Saturação para garantir que o valor final esteja dentro dos limites (0-255)
+      if (blendedValue > 255) {
+        blendedValue = 255;
+      } else if (blendedValue < 0) {
+        blendedValue = 0;
+      }
+
+      // Atualiza o valor do pixel misturado
+      img1->data[posY * img1->width + posX] = (uint8)blendedValue;
     }
   }  
 }
@@ -703,7 +717,49 @@ int ImageLocateSubImage(Image img1, int* px, int* py, Image img2) { ///
 /// [x-dx, x+dx]x[y-dy, y+dy].
 /// The image is changed in-place.
 void ImageBlur(Image img, int dx, int dy) { ///
-  //comment
 
+  assert (img != NULL);
+  assert(img->width >= 0 && img->height >= 0);
+
+  int width = img->width;
+  int height = img->height;
+
+  Image blurredImage = ImageCreate (width,height, ImageMaxval(img))
+
+  if (blurredImage == NULL){
+    return;
+  }
+
+  for (int y = 0; y < img->height; y++){
+    for (int x = 0; x < img->width; x++){
+
+      long sum = 0;
+      int count = 0;
+
+      for (int i = -dy; i <= dy; i++){
+        for (int j = -dx; j <= dx; j++){
+
+          int next_x = x + j;
+          int next_y = y + i;
+
+          if ImageValidPos(img,next_x,next_y){
+
+            sum += ImageGetPixel (img, next_x, next_y);
+            count++;
+
+          }
+        }
+      }
+
+      uint8 blurredValue = ((uint8)(double)sum/ count + 0.5); //rounding
+      ImageSetPixel(blurredImage,x,y,blurredValue);
+    }
+  }
+
+  for (int i = 0; i < height * width; i++){
+    img->data[i] = blurredImage->data[i];
+  }
+  
+  ImageDestroy(&blurredImage);
 }
 
